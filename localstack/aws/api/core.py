@@ -66,8 +66,8 @@ class HttpRequest(_SansIORequest):
         body: Union[bytes, str] = None,
         scheme: str = "http",
         root_path: str = "/",
-        query_string: bytes = b"",
-        remote_addr: str = None,
+        query_string: Union[bytes, str] = b"",
+        remote_addr: Optional[str] = None,
     ):
         if not headers:
             self.headers = Headers()

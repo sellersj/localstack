@@ -22,7 +22,13 @@ from localstack.constants import (
     PATH_USER_REQUEST,
 )
 from localstack.services.cloudwatch.cloudwatch_listener import PATH_GET_RAW_METRICS
-from localstack.services.generic_proxy import ProxyListener, modify_and_forward, start_proxy_server
+from localstack.services.generic_proxy import (
+    GenericProxy,
+    ProxyListener,
+    install_predefined_cert_if_available,
+    modify_and_forward,
+    start_proxy_server,
+)
 from localstack.services.infra import PROXY_LISTENERS
 from localstack.services.plugins import SERVICE_PLUGINS
 from localstack.services.s3.s3_utils import uses_host_addressing
@@ -517,12 +523,39 @@ def is_trace_logging_enabled(headers):
 
 
 def do_start_edge(bind_address, port, use_ssl, asynchronous=False):
+    start_dns_server(asynchronous=True)
+
+    if config.LEGACY_EDGE_PROXY:
+        serve = do_start_edge_proxy
+    else:
+        serve = serve_gateway
+
+    return serve(bind_address, port, use_ssl, asynchronous)
+
+
+def serve_gateway(bind_address, port, use_ssl, asynchronous=False):
+    from localstack.aws.app import LocalstackAwsGateway
+    from localstack.aws.serving.http2_server import serve_threaded
+
+    ssl_creds = (None, None)
+    if use_ssl:
+        install_predefined_cert_if_available()
+        _, cert_file_name, key_file_name = GenericProxy.create_ssl_cert(serial_number=port)
+        ssl_creds = (cert_file_name, key_file_name)
+
+    thread = serve_threaded(
+        LocalstackAwsGateway(), host=bind_address, port=port, ssl_creds=ssl_creds
+    )
+    if not asynchronous:
+        thread.join()
+    return thread
+
+
+def do_start_edge_proxy(bind_address, port, use_ssl, asynchronous=False):
     from localstack.services.internal import LocalstackResourceHandler
 
     # add internal routes as default listener
     ProxyListener.DEFAULT_LISTENERS.append(LocalstackResourceHandler())
-
-    start_dns_server(asynchronous=True)
 
     # get port and start Edge
     print("Starting edge router (http%s port %s)..." % ("s" if use_ssl else "", port))

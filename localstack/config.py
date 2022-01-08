@@ -317,6 +317,9 @@ WAIT_FOR_DEBUGGER = is_env_true("WAIT_FOR_DEBUGGER")
 # TODO: this is deprecated and should be removed (edge port supports HTTP/HTTPS multiplexing)
 USE_SSL = is_env_true("USE_SSL")
 
+# whether to use the legacy edge proxy or the newer Gateway/HandlerChain framework
+LEGACY_EDGE_PROXY = is_env_not_false("LEGACY_EDGE_PROXY")
+
 # whether to use the legacy single-region mode, defined via DEFAULT_REGION
 USE_SINGLE_REGION = is_env_true("USE_SINGLE_REGION")
 
@@ -625,6 +628,7 @@ CONFIG_ENV_VARS = [
     "LAMBDA_REMOVE_CONTAINERS",
     "LAMBDA_STAY_OPEN_MODE",
     "LEGACY_DOCKER_CLIENT",
+    "LEGACY_EDGE_PROXY",
     "LOCALSTACK_API_KEY",
     "LOCALSTACK_HOSTNAME",
     "LOG_LICENSE_ISSUES",
